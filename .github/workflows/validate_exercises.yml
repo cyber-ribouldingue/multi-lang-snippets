@@ -22,7 +22,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      # Installation dépendante de l'OS
+      # ---------------------------------------------------------------------
+      # 1) Installation en fonction de l'OS
+      # ---------------------------------------------------------------------
+
       - name: Install dependencies (Ubuntu)
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
@@ -34,15 +37,15 @@ jobs:
         run: |
           brew update
           brew install python
-          # brew install gcc (si nécessaire)
+          # brew install gcc (si besoin)
 
       - name: Install dependencies (Windows)
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
           choco install python --version=3.10.11 -y
-          # ou utiliser actions/setup-python@v4
-
-      - name: Setup Python (all OS)
+          # Ou configurer Python via actions/setup-python@v4 (recommandé)
+      
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
@@ -50,25 +53,46 @@ jobs:
       - name: Install Python packages
         run: |
           pip install --upgrade pip
-          # pip install pytest (par exemple)
+          # pip install pytest (si vous avez des tests unitaires)
 
-      # Compilation/Exécution C (Linux/macOS)
+      # ---------------------------------------------------------------------
+      # 2) Compilation/Exécution C (Linux/macOS) - script Bash
+      # ---------------------------------------------------------------------
       - name: Compile & Run C (Linux/macOS)
         if: ${{ matrix.os != 'windows-latest' }}
-        run: bash scripts/compile_run_c.sh
+        run: |
+          bash scripts/compile_run_c.sh
         shell: bash
 
-      # Compilation/Exécution C (Windows) - correction ici
+      # ---------------------------------------------------------------------
+      # 3) Compilation/Exécution C (Windows) - script PowerShell
+      # ---------------------------------------------------------------------
+      - name: Allow PS script execution
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: Set-ExecutionPolicy RemoteSigned -Scope Process
+        shell: pwsh
+
       - name: Compile & Run C (Windows)
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
+          # Optionnel: Voir si le script est bien présent
+          Write-Host "Listing files in scripts folder:"
+          Get-ChildItem -Path .\scripts
+
+          # Exécuter le script
           .\scripts\compile_run_c_windows.ps1
         shell: pwsh
 
+      # ---------------------------------------------------------------------
+      # 4) Test Python
+      # ---------------------------------------------------------------------
       - name: Test Python
         run: |
           bash scripts/test_python.sh
 
+      # ---------------------------------------------------------------------
+      # 5) Générer un résumé Markdown
+      # ---------------------------------------------------------------------
       - name: Generate summary
         run: |
           echo "## Résultats de la compilation et exécution (${{ matrix.os }})" >> $GITHUB_STEP_SUMMARY
