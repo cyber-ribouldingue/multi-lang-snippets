@@ -19,11 +19,9 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
-      # 1) Récupérer le code du dépôt
       - name: Checkout
         uses: actions/checkout@v3
 
-      # 2) Installation des dépendances selon l'OS
       - name: Install dependencies (Ubuntu)
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
@@ -41,11 +39,9 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
           choco install python --version=3.10.11 -y
-          # Visual Studio Build Tools sont préinstallés partiellement
-          # Vous pouvez aussi installer MinGW si vous préférez un environnement GCC.
-
+          # ou utiliser actions/setup-python (recommandé)
+      
       - name: Setup Python (all OS)
-        # Installe / configure Python via l'action officielle
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
@@ -53,44 +49,42 @@ jobs:
       - name: Install Python packages
         run: |
           pip install --upgrade pip
-          # pip install pytest ou autres libs ?
+          # pip install pytest si vous avez des tests unitaires
 
-      # 3) Compilation/Exécution C (Linux/macOS)
-      - name: Compile & Run C (Bash)
+      - name: Compile & Run C (Linux/macOS)
         if: ${{ matrix.os != 'windows-latest' }}
         run: |
           bash scripts/compile_run_c.sh
         shell: bash
 
-      # 3b) Compilation/Exécution C (Windows)
       - name: Compile & Run C (Windows)
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
           powershell scripts\compile_run_c_windows.ps1
         shell: pwsh
 
-      # 4) Test Python
-      - name: Run Python tests
+      - name: Test Python
         run: |
           bash scripts/test_python.sh
 
-      # 5) Construire un rapport (CSV -> Markdown)
-      - name: Build summary
+      - name: Generate summary
         run: |
-          echo "## Résultats de la compilation et exécution (${matrix.os})" >> $GITHUB_STEP_SUMMARY
+          # On insère la variable d'environnement GitHub Actions dans la chaîne
+          echo "## Résultats de la compilation et exécution (${{ matrix.os }})" >> $GITHUB_STEP_SUMMARY
+          
           echo "| Fichier | Statut |" >> $GITHUB_STEP_SUMMARY
           echo "|---------|--------|" >> $GITHUB_STEP_SUMMARY
 
-          # Si vous avez un results_c.csv et un results_python.csv, on concatène
+          # Récap C
           if [ -f results_c.csv ]; then
             tail -n +2 results_c.csv | while IFS=, read -r file status; do
               echo "| \`$file\` | $status |" >> $GITHUB_STEP_SUMMARY
             done
           fi
 
+          # Récap Python
           if [ -f results_python.csv ]; then
             tail -n +2 results_python.csv | while IFS=, read -r file status; do
               echo "| \`$file\` | $status |" >> $GITHUB_STEP_SUMMARY
             done
           fi
-
