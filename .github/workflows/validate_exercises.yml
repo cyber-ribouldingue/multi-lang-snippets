@@ -74,6 +74,14 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
         run: .\scripts\compile_run_c_windows.ps1
         shell: pwsh
+       - name: Install MinGW
+  if: ${{ matrix.os == 'windows-latest' }}
+  run: |
+    choco install mingw -y
+
+- name: Add MinGW to PATH
+  if: ${{ matrix.os == 'windows-latest' }}
+  run: echo "::add-path::C:\\tools\\mingw64\\bin"
 
       # ---------------------------------------------------------------------
       # 4) Test Python
