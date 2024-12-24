@@ -1,18 +1,19 @@
-Write-Host "=== Compilation C sous Windows (MSVC) ==="
+Write-Host "=== Compilation C sous Windows ==="
 
 $ResultFile = "results_c.csv"
 "Fichier,Statut" | Out-File $ResultFile
 
 # Parcours des fichiers .c dans snippets/c
-Get-ChildItem -Path snippets\c\*.c | ForEach-Object {
+Get-ChildItem -Path "snippets\c\*.c" | ForEach-Object {
     $filePath = $_.FullName
     $fileName = $_.Name
     $baseName = [IO.Path]::GetFileNameWithoutExtension($fileName)
     
     Write-Host "Compiling $filePath..."
-    # cl.exe est maintenant accessible grâce à msvc-dev-cmd
-    cl.exe /EHsc /Fe$baseName.exe $filePath
-    
+
+    # IMPORTANT: guillemets autour des arguments
+    gcc -o "$baseName.exe" "$filePath"
+
     if ($LASTEXITCODE -eq 0) {
         Write-Host "Compilation OK : $baseName.exe"
         
@@ -24,7 +25,7 @@ Get-ChildItem -Path snippets\c\*.c | ForEach-Object {
             "$filePath,ERREUR_EXECUTION" | Out-File $ResultFile -Append
         }
 
-        Remove-Item .\$baseName.exe -Force
+        Remove-Item ".\$baseName.exe" -Force
     }
     else {
         Write-Host "Compilation FAILED"
