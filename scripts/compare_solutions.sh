@@ -1,27 +1,25 @@
 #!/usr/bin/env bash
-set -e
 
-RESULT_FILE="results_cpp.csv"
-echo "Fichier,Statut" > "$RESULT_FILE"
+# Compare la sortie d'un snippet et de la solution (pour C, par ex.)
+# (Script très simplifié juste à titre d'exemple.)
 
-for snippet in snippets/cpp/*.cpp; do
-    [ -e "$snippet" ] || continue
+for file in snippets/c/*.c; do
+  [ -e "$file" ] || continue
+  base=$(basename "$file" .c)
+  
+  echo "Comparaison snippet vs solution pour $base"
 
-    echo "Compilation de $snippet..."
-    file_name=$(basename "$snippet" .cpp)
+  # Compiler et exécuter le snippet
+  gcc -o "$base" "$file"
+  ./"$base" > "student_$base.out"
 
-    if g++ -o "$file_name" "$snippet"; then
-        echo "- Compilation OK. Exécution..."
-        if ./"$file_name"; then
-            echo "$snippet,OK" >> "$RESULT_FILE"
-        else
-            echo "$snippet,ERREUR_A_L_EXECUTION" >> "$RESULT_FILE"
-        fi
-    else
-        echo "$snippet,ERREUR_DE_COMPILATION" >> "$RESULT_FILE"
-    fi
+  # Compiler et exécuter la solution
+  gcc -o "${base}_sol" "solutions/c/${base}_solution.c"
+  ./"${base}_sol" > "official_$base.out"
 
-    echo ""
+  echo "DIFF :"
+  diff "student_$base.out" "official_$base.out" || true
+
+  # Nettoyage
+  rm -f "$base" "${base}_sol" "student_$base.out" "official_$base.out"
 done
-
-echo "Résultats enregistrés dans $RESULT_FILE"
