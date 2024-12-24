@@ -1,20 +1,19 @@
 #!/usr/bin/env bash
+
 set -e
+RESULTS="results_python.csv"
+echo "Fichier,Statut" > "$RESULTS"
 
-RESULT_FILE="results_python.csv"
-echo "Fichier,Statut" > "$RESULT_FILE"
-
-for snippet in snippets/python/*.py; do
-    [ -e "$snippet" ] || continue
-
-    echo "Exécution de $snippet..."
-    if python "$snippet"; then
-        echo "$snippet,OK" >> "$RESULT_FILE"
-    else
-        echo "$snippet,ERREUR_A_L_EXECUTION" >> "$RESULT_FILE"
-    fi
-
-    echo ""
+for file in snippets/python/*.py; do
+  [ -e "$file" ] || continue
+  echo "==> Exécution de $file ..."
+  
+  if python "$file" > /dev/null 2>error.log; then
+    echo "$file,OK" >> "$RESULTS"
+  else
+    echo "$file,ERREUR_EXECUTION" >> "$RESULTS"
+  fi
 done
 
-echo "Résultats enregistrés dans $RESULT_FILE"
+echo "==> Résultats (Python) enregistrés dans $RESULTS"
+cat "$RESULTS"
