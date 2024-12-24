@@ -1,4 +1,89 @@
-- name: Generate summary
+name: Validate Exercises (Multi-Platform)
+
+on:
+  push:
+    paths:
+      - 'snippets/**'
+      - '.github/workflows/validate_exercises.yml'
+  pull_request:
+    paths:
+      - 'snippets/**'
+      - '.github/workflows/validate_exercises.yml'
+
+jobs:
+  build-and-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # ---------------------------------------------------------------------
+      # 1) Installation selon l'OS
+      # ---------------------------------------------------------------------
+      - name: Install dependencies (Ubuntu)
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential python3 python3-pip
+
+      - name: Install dependencies (macOS)
+        if: ${{ matrix.os == 'macos-latest' }}
+        run: |
+          brew update
+          brew install python
+          # brew install gcc (si besoin)
+
+      - name: Install dependencies (Windows)
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: |
+          choco install python --version=3.10.11 -y
+          choco install mingw -y
+          echo "C:\\tools\\mingw64\\bin" >> $GITHUB_PATH
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Python packages
+        run: |
+          pip install --upgrade pip
+
+      # ---------------------------------------------------------------------
+      # 2) Compilation/Exécution C
+      # ---------------------------------------------------------------------
+      - name: Compile & Run C (Linux/macOS)
+        if: ${{ matrix.os != 'windows-latest' }}
+        run: bash scripts/compile_run_c.sh
+        shell: bash
+
+      - name: Allow PS script execution (Windows)
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: Set-ExecutionPolicy Bypass -Scope Process
+        shell: pwsh
+
+      - name: Compile & Run C (Windows)
+        if: ${{ matrix.os == 'windows-latest' }}
+        continue-on-error: true
+        run: .\scripts\compile_run_c_windows.ps1
+        shell: pwsh
+
+      # ---------------------------------------------------------------------
+      # 3) Test Python
+      # ---------------------------------------------------------------------
+      - name: Test Python
+        continue-on-error: true
+        run: |
+          bash scripts/test_python.sh
+
+      # ---------------------------------------------------------------------
+      # 4) Générer le résumé (Bash)
+      # ---------------------------------------------------------------------
+     - name: Generate summary
   if: always()      # on l'exécute même si la compilation échoue
   shell: bash       # on utilise Bash pour la syntaxe `while IFS=...`
   run: |
@@ -19,3 +104,4 @@
         echo "| \`$file\` | $status | $details |" >> $GITHUB_STEP_SUMMARY
       done
     fi
+
