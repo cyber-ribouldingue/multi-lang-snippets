@@ -1,9 +1,9 @@
 Write-Host "=== Compilation C sous Windows ==="
 
 $ResultFile = "results_c.csv"
-"Fichier,Statut" | Out-File $ResultFile
+"Fichier,Statut,Détails" | Out-File $ResultFile
 
-# Parcours des fichiers .c dans snippets/c
+# On parcourt tous les .c dans le dossier snippets\c
 Get-ChildItem -Path "snippets\c\*.c" | ForEach-Object {
     $filePath = $_.FullName
     $fileName = $_.Name
@@ -11,24 +11,33 @@ Get-ChildItem -Path "snippets\c\*.c" | ForEach-Object {
     
     Write-Host "Compiling $filePath..."
 
-    # IMPORTANT: guillemets autour des arguments
-    gcc -o "$baseName.exe" "$filePath"
+    # Redirection de la sortie standard et erreur vers compile.log
+    gcc -o "$baseName.exe" "$filePath" > compile.log 2>&1
 
     if ($LASTEXITCODE -eq 0) {
         Write-Host "Compilation OK : $baseName.exe"
-        
-        .\$baseName.exe
+
+        # Exécution
+        .\$baseName.exe > run.log 2>&1
         if ($LASTEXITCODE -eq 0) {
-            "$filePath,OK" | Out-File $ResultFile -Append
+            # OK
+            "$filePath,OK," | Out-File $ResultFile -Append
         }
         else {
-            "$filePath,ERREUR_EXECUTION" | Out-File $ResultFile -Append
+            # Erreur d'exécution
+            $details = Get-Content run.log | Select-Object -First 1
+            "$filePath,ERREUR_EXECUTION,$details" | Out-File $ResultFile -Append
         }
 
         Remove-Item ".\$baseName.exe" -Force
+        Remove-Item run.log -ErrorAction SilentlyContinue
     }
     else {
+        # Erreur de compilation
+        $details = Get-Content compile.log | Select-Object -First 1
         Write-Host "Compilation FAILED"
-        "$filePath,ERREUR_COMPILATION" | Out-File $ResultFile -Append
+        "$filePath,ERREUR_COMPILATION,$details" | Out-File $ResultFile -Append
     }
 }
+
+Remove-Item compile.log -ErrorAction SilentlyContinue
