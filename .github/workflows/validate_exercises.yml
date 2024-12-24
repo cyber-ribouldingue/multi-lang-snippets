@@ -1,104 +1,21 @@
-name: Validate Exercises (Multi-Platform)
+- name: Generate summary
+  if: always()      # on l'exécute même si la compilation échoue
+  shell: bash       # on utilise Bash pour la syntaxe `while IFS=...`
+  run: |
+    echo "## Résultats de la compilation et exécution (${{ matrix.os }})" >> $GITHUB_STEP_SUMMARY
+    echo "| Fichier | Statut | Détails |" >> $GITHUB_STEP_SUMMARY
+    echo "|---------|--------|---------|" >> $GITHUB_STEP_SUMMARY
 
-on:
-  push:
-    paths:
-      - 'snippets/**'
-      - '.github/workflows/validate_exercises.yml'
-  pull_request:
-    paths:
-      - 'snippets/**'
-      - '.github/workflows/validate_exercises.yml'
+    if [ -f results_c.csv ]; then
+      tail -n +2 results_c.csv | while IFS=, read -r file status details; do
+        # On place 'details' dans la 3e colonne
+        echo "| \`$file\` | $status | $details |" >> $GITHUB_STEP_SUMMARY
+      done
+    fi
 
-jobs:
-  build-and-test:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      # ---------------------------------------------------------------------
-      # 1) Installation selon l'OS
-      # ---------------------------------------------------------------------
-      - name: Install dependencies (Ubuntu)
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential python3 python3-pip
-
-      - name: Install dependencies (macOS)
-        if: ${{ matrix.os == 'macos-latest' }}
-        run: |
-          brew update
-          brew install python
-          # brew install gcc (si besoin)
-
-      - name: Install dependencies (Windows)
-        if: ${{ matrix.os == 'windows-latest' }}
-        run: |
-          choco install python --version=3.10.11 -y
-          choco install mingw -y
-          echo "C:\\tools\\mingw64\\bin" >> $GITHUB_PATH
-
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      - name: Install Python packages
-        run: |
-          pip install --upgrade pip
-
-      # ---------------------------------------------------------------------
-      # 2) Compilation/Exécution C
-      # ---------------------------------------------------------------------
-      - name: Compile & Run C (Linux/macOS)
-        if: ${{ matrix.os != 'windows-latest' }}
-        run: bash scripts/compile_run_c.sh
-        shell: bash
-
-      - name: Allow PS script execution (Windows)
-        if: ${{ matrix.os == 'windows-latest' }}
-        run: Set-ExecutionPolicy Bypass -Scope Process
-        shell: pwsh
-
-      - name: Compile & Run C (Windows)
-        if: ${{ matrix.os == 'windows-latest' }}
-        continue-on-error: true
-        run: .\scripts\compile_run_c_windows.ps1
-        shell: pwsh
-
-      # ---------------------------------------------------------------------
-      # 3) Test Python
-      # ---------------------------------------------------------------------
-      - name: Test Python
-        continue-on-error: true
-        run: |
-          bash scripts/test_python.sh
-
-      # ---------------------------------------------------------------------
-      # 4) Générer le résumé (Bash)
-      # ---------------------------------------------------------------------
-      - name: Generate summary
-        if: always()          # S'exécute même si des étapes précédentes échouent
-        shell: bash           # Force l'utilisation de Bash, pas PowerShell
-        run: |
-          echo "## Résultats de la compilation et exécution (${{ matrix.os }})" >> $GITHUB_STEP_SUMMARY
-          echo "| Fichier | Statut |" >> $GITHUB_STEP_SUMMARY
-          echo "|---------|--------|" >> $GITHUB_STEP_SUMMARY
-
-          if [ -f results_c.csv ]; then
-            tail -n +2 results_c.csv | while IFS=, read -r file status; do
-              echo "| \`$file\` | $status |" >> $GITHUB_STEP_SUMMARY
-            done
-          fi
-
-          if [ -f results_python.csv ]; then
-            tail -n +2 results_python.csv | while IFS=, read -r file status; do
-              echo "| \`$file\` | $status |" >> $GITHUB_STEP_SUMMARY
-            done
-          fi
+    # Pareil si vous gérez d'autres CSV (Python, etc.)
+    if [ -f results_python.csv ]; then
+      tail -n +2 results_python.csv | while IFS=, read -r file status details; do
+        echo "| \`$file\` | $status | $details |" >> $GITHUB_STEP_SUMMARY
+      done
+    fi
