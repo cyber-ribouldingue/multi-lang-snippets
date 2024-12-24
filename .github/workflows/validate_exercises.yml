@@ -80,28 +80,27 @@ jobs:
         run: |
           bash scripts/test_python.sh
 
-      # ---------------------------------------------------------------------
+           # ---------------------------------------------------------------------
       # 4) Générer le résumé (Bash)
       # ---------------------------------------------------------------------
-     - name: Generate summary
-  if: always()      # on l'exécute même si la compilation échoue
-  shell: bash       # on utilise Bash pour la syntaxe `while IFS=...`
-  run: |
-    echo "## Résultats de la compilation et exécution (${{ matrix.os }})" >> $GITHUB_STEP_SUMMARY
-    echo "| Fichier | Statut | Détails |" >> $GITHUB_STEP_SUMMARY
-    echo "|---------|--------|---------|" >> $GITHUB_STEP_SUMMARY
+      - name: Generate summary
+        if: always()           # s'exécute même si la compilation échoue
+        shell: bash            # on utilise Bash pour la syntaxe `while IFS=...`
+        run: |
+          echo "## Résultats de la compilation et exécution (${{ matrix.os }})" >> $GITHUB_STEP_SUMMARY
+          echo "| Fichier | Statut | Détails |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|--------|---------|" >> $GITHUB_STEP_SUMMARY
 
-    if [ -f results_c.csv ]; then
-      tail -n +2 results_c.csv | while IFS=, read -r file status details; do
-        # On place 'details' dans la 3e colonne
-        echo "| \`$file\` | $status | $details |" >> $GITHUB_STEP_SUMMARY
-      done
-    fi
+          if [ -f results_c.csv ]; then
+            tail -n +2 results_c.csv | while IFS=, read -r file status details; do
+              echo "| \`$file\` | $status | $details |" >> $GITHUB_STEP_SUMMARY
+            done
+          fi
 
-    # Pareil si vous gérez d'autres CSV (Python, etc.)
-    if [ -f results_python.csv ]; then
-      tail -n +2 results_python.csv | while IFS=, read -r file status details; do
-        echo "| \`$file\` | $status | $details |" >> $GITHUB_STEP_SUMMARY
-      done
-    fi
+          if [ -f results_python.csv ]; then
+            tail -n +2 results_python.csv | while IFS=, read -r file status details; do
+              echo "| \`$file\` | $status | $details |" >> $GITHUB_STEP_SUMMARY
+            done
+          fi
+
 
