@@ -23,9 +23,8 @@ jobs:
         uses: actions/checkout@v3
 
       # ---------------------------------------------------------------------
-      # 1) Installation en fonction de l'OS
+      # 1) Installation selon l'OS
       # ---------------------------------------------------------------------
-
       - name: Install dependencies (Ubuntu)
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
@@ -37,14 +36,14 @@ jobs:
         run: |
           brew update
           brew install python
-          # brew install gcc (si besoin)
+          # brew install gcc
 
       - name: Install dependencies (Windows)
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
           choco install python --version=3.10.11 -y
-          # Ou configurer Python via actions/setup-python@v4 (recommandé)
-      
+          # ou utiliser actions/setup-python
+
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
@@ -53,34 +52,27 @@ jobs:
       - name: Install Python packages
         run: |
           pip install --upgrade pip
-          # pip install pytest (si vous avez des tests unitaires)
 
       # ---------------------------------------------------------------------
-      # 2) Compilation/Exécution C (Linux/macOS) - script Bash
+      # 2) Compilation/Exécution C sur Linux/macOS
       # ---------------------------------------------------------------------
       - name: Compile & Run C (Linux/macOS)
         if: ${{ matrix.os != 'windows-latest' }}
-        run: |
-          bash scripts/compile_run_c.sh
+        run: bash scripts/compile_run_c.sh
         shell: bash
 
       # ---------------------------------------------------------------------
-      # 3) Compilation/Exécution C (Windows) - script PowerShell
+      # 3) Compilation/Exécution C sur Windows (avec MSVC)
       # ---------------------------------------------------------------------
-      - name: Allow PS script execution
+      - name: Setup MSVC Dev Cmd
         if: ${{ matrix.os == 'windows-latest' }}
-        run: Set-ExecutionPolicy RemoteSigned -Scope Process
-        shell: pwsh
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
 
       - name: Compile & Run C (Windows)
         if: ${{ matrix.os == 'windows-latest' }}
-        run: |
-          # Optionnel: Voir si le script est bien présent
-          Write-Host "Listing files in scripts folder:"
-          Get-ChildItem -Path .\scripts
-
-          # Exécuter le script
-          .\scripts\compile_run_c_windows.ps1
+        run: .\scripts\compile_run_c_windows.ps1
         shell: pwsh
 
       # ---------------------------------------------------------------------
@@ -91,7 +83,7 @@ jobs:
           bash scripts/test_python.sh
 
       # ---------------------------------------------------------------------
-      # 5) Générer un résumé Markdown
+      # 5) Génération d'un résumé
       # ---------------------------------------------------------------------
       - name: Generate summary
         run: |
