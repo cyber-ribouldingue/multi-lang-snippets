@@ -1,0 +1,74 @@
+name: Validate Student Snippets
+
+on:
+  push:
+    paths:
+      - 'snippets/**'
+      - '.github/workflows/validate_snippets.yml'
+      - 'scripts/**'
+  pull_request:
+    paths:
+      - 'snippets/**'
+      - '.github/workflows/validate_snippets.yml'
+      - 'scripts/**'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y build-essential python3
+
+      - name: Compile & Run C
+        run: bash scripts/compile_run_c.sh
+
+      - name: Compile & Run C++
+        run: bash scripts/compile_run_cpp.sh
+
+      - name: Test Python
+        run: bash scripts/test_python.sh
+
+      - name: Collect results
+        run: |
+          echo "Langage,Fichier,Statut" > results_global.csv
+
+          # results_c.csv
+          if [ -f results_c.csv ]; then
+            tail -n +2 results_c.csv | while IFS=, read -r file status; do
+              echo "C,$file,$status" >> results_global.csv
+            done
+          fi
+
+          # results_cpp.csv
+          if [ -f results_cpp.csv ]; then
+            tail -n +2 results_cpp.csv | while IFS=, read -r file status; do
+              echo "C++,$file,$status" >> results_global.csv
+            done
+          fi
+
+          # results_python.csv
+          if [ -f results_python.csv ]; then
+            tail -n +2 results_python.csv | while IFS=, read -r file status; do
+              echo "Python,$file,$status" >> results_global.csv
+            done
+          fi
+
+      - name: Show summary
+        run: |
+          echo "## Résultats de la compilation / exécution" >> $GITHUB_STEP_SUMMARY
+          echo "| Langage | Fichier | Statut |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|--------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          tail -n +2 results_global.csv | while IFS=, read -r lang file status; do
+            echo "| $lang | \`$file\` | $status |" >> $GITHUB_STEP_SUMMARY
+          done
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: results
+          path: results_global.csv
