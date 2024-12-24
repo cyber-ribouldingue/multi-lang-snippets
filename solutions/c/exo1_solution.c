@@ -1,7 +1,8 @@
 #include <stdio.h>
 
-int main() {
-    // Correction
-    printf("Hello C\n");
+int main(void) {
+    int a = 2;
+    int b = 3;
+    printf("La somme est %d\n", a + b);
     return 0;
 }
