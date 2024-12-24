@@ -14,7 +14,8 @@ Get-ChildItem -Path snippets\c\*.c | ForEach-Object {
     $baseName = [IO.Path]::GetFileNameWithoutExtension($fileName)
     
     Write-Host "Compiling $filePath..."
-    cl.exe /EHsc /Fe$baseName.exe $filePath
+   gcc -o $baseName.exe $filePath
+
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host "Compilation OK : $baseName.exe"
